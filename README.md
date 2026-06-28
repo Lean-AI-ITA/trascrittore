@@ -261,3 +261,144 @@ The entire folder can be copied to a USB drive and used on any Windows PC:
 - [OpenAI Whisper](https://github.com/openai/whisper) — AI transcription engine
 - [FFmpeg](https://ffmpeg.org/) — audio/video conversion
 - [Python](https://www.python.org/) + [Tkinter](https://docs.python.org/3/library/tkinter.html) — graphical interface
+
+---
+
+---
+
+## 💻 Requisiti di sistema
+
+| Requisito | Minimo | Consigliato |
+|-----------|--------|-------------|
+| Sistema Operativo | Windows 10 | Windows 11 |
+| RAM | 4 GB | 8 GB |
+| Spazio disco libero | 1 GB | 2 GB |
+| Connessione internet | Solo installazione | — |
+
+---
+
+## ⏱️ Tempi di elaborazione stimati
+
+| Tipo file | Durata file | Tempo stimato |
+|-----------|-------------|---------------|
+| Audio breve | 1–3 min | 1–2 min |
+| Audio medio | 5–10 min | 2–4 min |
+| Audio lungo | 10–30 min | 3–8 min |
+| Video breve | 1–5 min | 2–4 min |
+| Video medio | 5–15 min | 4–8 min |
+| Video lungo | 15–30 min | 5–12 min |
+
+> Il primo utilizzo è più lento perché il modello AI viene caricato per la prima volta. I tempi dipendono anche dalla potenza del PC.
+
+---
+
+## 💡 Suggerimenti per risultati ottimali
+
+**Qualità audio**
+- Usa file con audio chiaro e senza rumore di fondo
+- Verifica che il volume del file sia adeguato prima di trascrivere
+- Per file italiani seleziona sempre la lingua "Italiano" — non "Automatico"
+
+**Gestione file**
+- Per video molto lunghi, dividili in segmenti più corti
+- Preferisci formati comuni: MP4, MP3, WAV
+- Non chiudere il programma durante l'elaborazione
+
+**Cosa evitare**
+- Interrompere il processo di trascrizione a metà
+- File corrotti o con audio molto basso
+- Avviare più trascrizioni contemporaneamente
+
+---
+
+## 📂 Nota pratica — cartelle create automaticamente
+
+Dopo aver eseguito tutti i passaggi di installazione, troverai due cartelle create automaticamente:
+
+```
+trascrittore_env/     ← ambiente virtuale con tutte le dipendenze
+TRASCRIZIONI/         ← dove vengono salvati i file di testo trascritti
+```
+
+**Se devi ricominciare da zero:** cancella entrambe le cartelle e riesegui i `.bat` dall'inizio (passo 1 → passo 2 → passo 3).
+
+**Se l'installazione è già completa:** basta avviare direttamente `3.AVVIO_TRASCRITTORE.bat` — non serve rieseguire i passi precedenti ogni volta.
+
+---
+
+## 📋 Struttura completa della cartella
+
+```
+📁 Trascrittore/
+├── 📄 INSTALLA_E_AVVIA.html
+├── 📄 0.CONTROLLO_PYTHON.bat
+├── 📄 1.CREA_AMBIENTE_PULITO.bat
+├── 📄 2.INSTALLA_WHISPER.bat
+├── 📄 3.AVVIO_TRASCRITTORE.bat
+├── 📄 trascrittore.py
+├── 📄 ffmpeg.exe
+├── 📁 trascrittore_env/        ← creata automaticamente
+└── 📁 TRASCRIZIONI/            ← creata automaticamente
+    ├── 📄 video1_trascrizione.txt
+    └── 📄 audio1_trascrizione.txt
+```
+
+---
+
+## System Requirements (English)
+
+| Requirement | Minimum | Recommended |
+|-------------|---------|-------------|
+| Operating System | Windows 10 | Windows 11 |
+| RAM | 4 GB | 8 GB |
+| Free disk space | 1 GB | 2 GB |
+| Internet connection | Installation only | — |
+
+---
+
+## ⏱️ Estimated processing times (English)
+
+| File type | File duration | Estimated time |
+|-----------|---------------|----------------|
+| Short audio | 1–3 min | 1–2 min |
+| Medium audio | 5–10 min | 2–4 min |
+| Long audio | 10–30 min | 3–8 min |
+| Short video | 1–5 min | 2–4 min |
+| Medium video | 5–15 min | 4–8 min |
+| Long video | 15–30 min | 5–12 min |
+
+> The first run is slower because the AI model loads for the first time. Times also depend on your PC's processing power.
+
+---
+
+## 💡 Tips for best results (English)
+
+**Audio quality**
+- Use files with clear audio and minimal background noise
+- Check the file volume is adequate before transcribing
+- For Italian files always select "Italiano" — not "Automatico"
+
+**File management**
+- For very long videos, split them into shorter segments
+- Prefer common formats: MP4, MP3, WAV
+- Do not close the app during processing
+
+**What to avoid**
+- Interrupting the transcription mid-process
+- Corrupted files or files with very low audio
+- Running multiple transcriptions at the same time
+
+---
+
+## 📂 Practical note — auto-created folders (English)
+
+After completing the installation steps, two folders are created automatically:
+
+```
+trascrittore_env/     ← virtual environment with all dependencies
+TRASCRIZIONI/         ← where transcribed text files are saved
+```
+
+**If you need to start over:** delete both folders and re-run the `.bat` files from the beginning (step 1 → step 2 → step 3).
+
+**If installation is already complete:** just launch `3.AVVIO_TRASCRITTORE.bat` directly — no need to repeat the previous steps every time.
