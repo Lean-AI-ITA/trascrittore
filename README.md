@@ -128,3 +128,136 @@ La cartella può essere copiata su una chiavetta USB e usata su qualsiasi PC Win
 - [OpenAI Whisper](https://github.com/openai/whisper) — motore di trascrizione AI
 - [FFmpeg](https://ffmpeg.org/) — conversione audio/video
 - [Python](https://www.python.org/) + [Tkinter](https://docs.python.org/3/library/tkinter.html) — interfaccia grafica
+
+---
+
+---
+
+# 🎙️ Video and Audio Transcriber — English
+
+Automatically transcribe video and audio files to text using **OpenAI Whisper** AI, completely **offline** after the first installation. Supports Italian, English, and automatic language detection.
+
+---
+
+## 📁 Folder Contents
+
+```
+📁 Trascrittore/
+├── INSTALLA_E_AVVIA.html        ← Open this to get started (guided wizard)
+├── trascrittore.py              ← Main application
+├── 0.CONTROLLO_PYTHON.bat       ← Check Python installation
+├── 1.CREA_AMBIENTE_PULITO.bat   ← Create virtual environment
+├── 2.INSTALLA_WHISPER.bat       ← Install AI engine
+├── 3.AVVIO_TRASCRITTORE.bat     ← Launch the application
+└── ffmpeg.exe                   ← Download required (see below)
+```
+
+---
+
+## 🚀 Installation (first time only)
+
+### Recommended — HTML Wizard
+
+1. Open **`INSTALLA_E_AVVIA.html`** in any browser (Chrome, Edge, Firefox)
+2. Follow the 6 guided steps — each step includes instructions and direct links
+3. Estimated time: **5–15 minutes**
+
+### Manual — run .bat files in order
+
+| Step | File | What it does |
+|------|------|--------------|
+| 0 | `0.CONTROLLO_PYTHON.bat` | Checks if Python is installed |
+| 1 | `1.CREA_AMBIENTE_PULITO.bat` | Creates an isolated virtual environment |
+| 2 | `2.INSTALLA_WHISPER.bat` | Downloads and installs OpenAI Whisper |
+| 3 | `3.AVVIO_TRASCRITTORE.bat` | Launches the application |
+
+---
+
+## 📋 Requirements
+
+### Python 3.8+
+- Download from: https://www.python.org/downloads/
+- **Important:** during installation, check **"Add Python to PATH"**
+- Restart your PC after installation
+
+### FFmpeg
+Required to extract audio from video files before transcription.
+
+1. Download from: https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip
+2. Extract the zip
+3. Copy **only** `ffmpeg.exe` from the `bin/` folder into the Transcriber folder
+
+---
+
+## ▶️ Daily use
+
+After installation, just double-click to launch:
+
+```
+3.AVVIO_TRASCRITTORE.bat
+```
+
+### In the app:
+
+1. Click **Sfoglia** (Browse) and select your video or audio file
+2. Choose the language *(italiano, inglese, or automatico)*
+3. Click **AVVIA TRASCRIZIONE** (Start Transcription)
+4. The text file is automatically saved in the **`TRASCRIZIONI/`** folder
+
+---
+
+## 🎥 Supported formats
+
+| Type | Formats |
+|------|---------|
+| **Video** | MP4, MOV, MKV, AVI, M4V, WMV |
+| **Audio** | MP3, WAV, M4A, FLAC, AAC, OGG |
+
+---
+
+## 🌍 Supported languages
+
+- 🇮🇹 **Italian** (default)
+- 🇬🇧 **English**
+- 🌐 **Automatic** — Whisper detects the language from the audio content
+
+---
+
+## ⚡ Performance notes
+
+- The **first transcription** downloads the AI model (~150 MB) — this is expected and only happens once
+- Subsequent transcriptions start immediately
+- Longer files take more time (roughly 1 minute per 10 minutes of audio)
+- The app works **completely offline** after the initial installation
+
+---
+
+## 🔧 Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| `"python" not recognized` | Restart PC after installing Python |
+| Virtual environment error | Delete the `trascrittore_env/` folder and re-run `1.CREA_AMBIENTE_PULITO.bat` |
+| Empty transcription | Make sure the file has audio; test with an MP3 first |
+| FFmpeg not found | Make sure `ffmpeg.exe` is in the same folder as `trascrittore.py` |
+| SSL / download error | Check your internet connection during Whisper installation |
+
+---
+
+## 💾 USB Drive usage
+
+The entire folder can be copied to a USB drive and used on any Windows PC:
+
+1. **Copy the entire folder** from the USB drive to the Desktop of the target PC
+2. Open `INSTALLA_E_AVVIA.html` and follow the wizard
+3. The virtual environment (`trascrittore_env/`) is created locally on the PC
+
+> Working directly from a USB drive is slower and may cause errors — always copy to the Desktop first.
+
+---
+
+## 🤖 Built with
+
+- [OpenAI Whisper](https://github.com/openai/whisper) — AI transcription engine
+- [FFmpeg](https://ffmpeg.org/) — audio/video conversion
+- [Python](https://www.python.org/) + [Tkinter](https://docs.python.org/3/library/tkinter.html) — graphical interface
