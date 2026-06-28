@@ -1,0 +1,353 @@
+<html>
+<head>
+<HTA:APPLICATION
+  APPLICATIONNAME="Trascrittore AI"
+  BORDER="thin"
+  CAPTION="yes"
+  MAXIMIZEBUTTON="no"
+  MINIMIZEBUTTON="yes"
+  SYSMENU="yes"
+  SINGLEINSTANCE="yes"
+  SCROLL="no"
+  INNERBORDER="no"
+/>
+<meta http-equiv="X-UA-Compatible" content="IE=11">
+<title>Trascrittore AI</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #0F0F23;
+  color: #F8FAFC;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  padding: 36px;
+  overflow: hidden;
+  height: 100%;
+}
+h1  { font-size: 26px; color: #F97316; font-weight: 700; letter-spacing: -0.5px; }
+.sub { font-size: 11px; color: #8B8BA8; margin-top: 5px; }
+.header { margin-bottom: 30px; border-bottom: 1px solid #1E1E40; padding-bottom: 20px; }
+
+/* ── Cards scelta ── */
+.card {
+  background: #141430;
+  border-radius: 14px;
+  border: 1.5px solid #2A2A50;
+  padding: 0;
+  cursor: pointer;
+  margin-bottom: 14px;
+  display: table;
+  width: 100%;
+  transition: border-color .15s;
+}
+.card:hover { border-color: #F97316; }
+.card:hover .c-arrow { color: #F97316; }
+.card-inner { display: table-row; }
+.c-icon  { display: table-cell; vertical-align: middle; width: 64px;
+            text-align: center; font-size: 30px; color: #F97316; padding: 20px 0; }
+.c-body  { display: table-cell; vertical-align: middle; padding: 20px 16px 20px 0; }
+.c-title { font-size: 15px; font-weight: 700; color: #F8FAFC; }
+.c-desc  { font-size: 11px; color: #6B6B88; margin-top: 5px; }
+.c-arrow { display: table-cell; vertical-align: middle; width: 32px;
+            color: #3A3A5C; font-size: 16px; }
+
+.card-red:hover { border-color: #EF4444; }
+.card-red:hover .c-arrow { color: #EF4444; }
+.c-icon-red { color: #EF4444; font-size: 24px; }
+
+.footer-note { font-size: 10px; color: #2E2E50; text-align: center; margin-top: 22px; }
+
+/* ── Progress panel ── */
+#panelProgress { display: none; }
+
+.step-lbl {
+  font-size: 13px; font-weight: 600; color: #F8FAFC; margin-bottom: 12px;
+}
+.track {
+  background: #1C1C38; height: 10px; border-radius: 5px;
+  margin-bottom: 20px; overflow: hidden; position: relative;
+}
+.fill {
+  background: #F97316; height: 10px; border-radius: 5px;
+  width: 0%; position: absolute; left: 0; top: 0;
+  transition: width .4s ease;
+}
+.fill-red { background: #EF4444; }
+
+.log-wrap {
+  background: #0D0D20;
+  border: 1px solid #1E1E40;
+  border-radius: 10px;
+  height: 220px;
+  overflow-y: auto;
+  padding: 14px;
+}
+.log-line {
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 11px;
+  line-height: 1.7;
+  display: block;
+}
+.ok   { color: #22C55E; }
+.warn { color: #F59E0B; }
+.err  { color: #EF4444; }
+.info { color: #4B4B70; }
+
+.btn-main {
+  display: none;
+  width: 100%;
+  margin-top: 18px;
+  padding: 15px;
+  background: linear-gradient(135deg, #F97316, #EA580C);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  letter-spacing: .5px;
+}
+.btn-main:hover { background: linear-gradient(135deg, #FB923C, #F97316); }
+.btn-red { background: linear-gradient(135deg, #EF4444, #DC2626); }
+.btn-red:hover { background: linear-gradient(135deg, #F87171, #EF4444); }
+.btn-retry { background: linear-gradient(135deg, #6366F1, #4F46E5); }
+.btn-retry:hover { background: linear-gradient(135deg, #818CF8, #6366F1); }
+
+.err-note {
+  display: none;
+  margin-top: 14px;
+  padding: 14px;
+  background: #200808;
+  border: 1px solid #7F1D1D;
+  border-radius: 10px;
+  font-size: 11px;
+  color: #FCA5A5;
+  line-height: 1.6;
+}
+</style>
+</head>
+
+<body onload="Init()">
+
+<div class="header">
+  <h1>&#9679; Trascrittore AI</h1>
+  <div class="sub" id="subTitle">Trascrivi video e audio in testo con intelligenza artificiale &mdash; offline</div>
+</div>
+
+<!-- ── PANNELLO SCELTA ── -->
+<div id="panelScelta">
+  <div style="font-size:15px;font-weight:600;color:#A0A0C0;margin-bottom:18px;">Cosa vuoi fare?</div>
+
+  <div class="card" id="cardInstalla" onclick="AvviaInstalla()">
+    <div class="card-inner">
+      <div class="c-icon">&#9654;</div>
+      <div class="c-body">
+        <div class="c-title">Installa Trascrittore AI</div>
+        <div class="c-desc">Scarica Python, il motore AI e FFmpeg &mdash; tutto automaticamente</div>
+      </div>
+      <div class="c-arrow">&#10095;</div>
+    </div>
+  </div>
+
+  <div class="card card-red" id="cardDisinstalla" onclick="AvviaDisinstalla()">
+    <div class="card-inner">
+      <div class="c-icon c-icon-red">&#10006;</div>
+      <div class="c-body">
+        <div class="c-title">Disinstalla</div>
+        <div class="c-desc">Rimuove ambiente virtuale, modelli AI, FFmpeg e scorciatoie</div>
+      </div>
+      <div class="c-arrow">&#10095;</div>
+    </div>
+  </div>
+
+  <div class="footer-note">Powered by OpenAI Whisper &nbsp;&bull;&nbsp; Funziona completamente offline dopo la prima installazione</div>
+</div>
+
+<!-- ── PANNELLO PROGRESS ── -->
+<div id="panelProgress">
+  <div class="step-lbl" id="stepLbl">Avvio...</div>
+  <div class="track"><div class="fill" id="fillBar"></div></div>
+  <div class="log-wrap" id="logWrap"></div>
+  <div class="err-note" id="errNote">
+    <strong>Come risolvere:</strong><br>
+    &bull; Controlla la connessione internet<br>
+    &bull; Prova a rieseguire AVVIA.hta<br>
+    &bull; Se persiste, scarica Python manualmente da <em>python.org</em>
+  </div>
+  <button class="btn-main" id="btnMain" onclick="BtnClick()">AVVIA IL TRASCRITTORE</button>
+</div>
+
+<!-- ====== VBSCRIPT ====== -->
+<script language="VBScript">
+
+Dim oShell, oFSO, sLogFile, sScriptDir, sAction
+Dim iLastLine, bDone, bError, bDanger
+
+Sub Init()
+  Set oShell = CreateObject("WScript.Shell")
+  Set oFSO   = CreateObject("Scripting.FileSystemObject")
+  sLogFile   = oShell.ExpandEnvironmentStrings("%TEMP%") & "\trascrittore_log.txt"
+  
+  ' Calcola cartella dello script
+  Dim href
+  href = Location.Href
+  href = Replace(href, "file:///", "")
+  href = Replace(href, "%20", " ")
+  href = Replace(href, "/", "\")
+  sScriptDir = Left(href, InStrRev(href, "\"))
+  
+  ' Dimensiona finestra
+  window.resizeTo 580, 560
+  window.moveTo (screen.Width - 580) \ 2, (screen.Height - 560) \ 2
+End Sub
+
+Sub AvviaInstalla()
+  sAction = "install"
+  bDanger = False
+  document.getElementById("subTitle").innerText = "Installazione in corso — attendere..."
+  AvviaProcess()
+End Sub
+
+Sub AvviaDisinstalla()
+  sAction = "uninstall"
+  bDanger = True
+  document.getElementById("fillBar").className = "fill fill-red"
+  document.getElementById("subTitle").innerText = "Disinstallazione in corso..."
+  AvviaProcess()
+End Sub
+
+Sub AvviaProcess()
+  iLastLine = 0
+  bDone = False
+  bError = False
+  
+  ' Mostra progress, nascondi scelta
+  document.getElementById("panelScelta").style.display = "none"
+  document.getElementById("panelProgress").style.display = "block"
+  
+  ' Pulisci log precedente
+  If oFSO.FileExists(sLogFile) Then oFSO.DeleteFile sLogFile
+  
+  ' Lancia runner PowerShell (nascosto)
+  Dim ps1, cmd
+  ps1 = sScriptDir & "_sistema\_setup_runner.ps1"
+  cmd = "powershell -NonInteractive -ExecutionPolicy Bypass -File """ & ps1 & """ -LogFile """ & sLogFile & """ -Action " & sAction
+  oShell.Run cmd, 0, False
+  
+  ' Polling ogni 600ms
+  window.setInterval "PollLog()", 600
+End Sub
+
+Sub PollLog()
+  If bDone Or bError Then Exit Sub
+  If Not oFSO.FileExists(sLogFile) Then Exit Sub
+  
+  Dim oTS, sAll, aLines, i, line, parts, sType, sMsg, sPct
+  On Error Resume Next
+  Set oTS = oFSO.OpenTextFile(sLogFile, 1, False)
+  If Err.Number <> 0 Then Exit Sub
+  sAll = oTS.ReadAll()
+  oTS.Close
+  On Error GoTo 0
+  
+  aLines = Split(sAll, vbCrLf)
+  
+  For i = iLastLine To UBound(aLines)
+    line = Trim(aLines(i))
+    If line <> "" Then
+      parts = Split(line, "|", 3)
+      If UBound(parts) >= 2 Then
+        sType = parts(0)
+        sPct  = parts(1)
+        sMsg  = parts(2)
+        
+        Select Case sType
+          Case "STEP"
+            SetStep sPct, sMsg
+          Case "LOG"
+            AppendLog sPct, sMsg   ' sPct qui e' il tipo log (ok/warn/err/info)
+          Case "DONE"
+            SetStep "100", "Completato!"
+            bDone = True
+            If bDanger Then
+              ShowBtn "CHIUDI", True, False
+            Else
+              ShowBtn "AVVIA IL TRASCRITTORE", False, False
+            End If
+          Case "ERROR"
+            AppendLog "err", sMsg
+            SetStep "0", "Errore — controlla il log"
+            bError = True
+            document.getElementById("errNote").style.display = "block"
+            ShowBtn "RIPROVA", False, True
+        End Select
+      End If
+    End If
+    iLastLine = i + 1
+  Next
+End Sub
+
+Sub SetStep(pct, lbl)
+  document.getElementById("fillBar").style.width = pct & "%"
+  document.getElementById("stepLbl").innerText = lbl
+End Sub
+
+Sub AppendLog(logType, msg)
+  Dim wrap, span, ts, h, m, s
+  Set wrap = document.getElementById("logWrap")
+  Set span = document.createElement("span")
+  span.className = "log-line " & logType
+  
+  Dim now : now = Time()
+  h = Hour(now) : m = Minute(now) : s = Second(now)
+  If h < 10 Then h = "0" & h
+  If m < 10 Then m = "0" & m
+  If s < 10 Then s = "0" & s
+  
+  Dim prefix
+  Select Case logType
+    Case "ok"   : prefix = "OK   "
+    Case "warn" : prefix = "!!   "
+    Case "err"  : prefix = "X    "
+    Case Else   : prefix = "     "
+  End Select
+  
+  span.innerText = "[" & h & ":" & m & ":" & s & "]  " & prefix & msg
+  wrap.appendChild(span)
+  wrap.scrollTop = wrap.scrollHeight
+End Sub
+
+Sub ShowBtn(txt, isRed, isRetry)
+  Dim btn
+  Set btn = document.getElementById("btnMain")
+  btn.style.display = "block"
+  btn.innerText = txt
+  If isRed Then
+    btn.className = "btn-main btn-red"
+  ElseIf isRetry Then
+    btn.className = "btn-main btn-retry"
+  Else
+    btn.className = "btn-main"
+  End If
+End Sub
+
+Sub BtnClick()
+  If bDone And Not bDanger Then
+    ' Avvia app
+    Dim py, app
+    py  = sScriptDir & "trascrittore_env\Scripts\python.exe"
+    app = sScriptDir & "_sistema\trascrittore_portable.py"
+    oShell.Run Chr(34) & py & Chr(34) & " " & Chr(34) & app & Chr(34), 1, False
+    window.close()
+  ElseIf bError Then
+    ' Riprova — ricarica pagina
+    Location.Reload
+  Else
+    window.close()
+  End If
+End Sub
+
+</script>
+
+</body>
+</html>
