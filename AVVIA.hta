@@ -141,12 +141,12 @@ body {
 }
 .ll {
   font-family:Consolas,'Courier New',monospace;
-  font-size:11px; line-height:1.75; display:block;
+  font-size:11.5px; line-height:1.9; display:block;
 }
-.ok   { color:#22C55E; }
-.warn { color:#F59E0B; }
-.err  { color:#EF4444; }
-.info { color:#3A3A58; }
+.ok   { color:#4ADE80; }
+.warn { color:#FCD34D; }
+.err  { color:#F87171; }
+.info { color:#94A3B8; }
 
 .btn-end {
   display:none; width:100%; margin-top:16px; padding:16px;
@@ -239,19 +239,27 @@ function startProcess(action) {
 
   if (fs.FileExists(logFile)) fs.DeleteFile(logFile);
 
-  // Prima riga scritta subito da JS (conferma che il processo è partito)
-  writeLog("STEP|2|Avvio installazione...");
-  writeLog("LOG|info|Avvio PowerShell runner...");
+  // Scrivi file config — evita problemi con parametri su riga di comando
+  var cfgFile = sh.ExpandEnvironmentStrings("%TEMP%") + "\\trascrittore_cfg.txt";
+  var cfg = fs.OpenTextFile(cfgFile, 2, true);
+  cfg.WriteLine("LogFile=" + logFile);
+  cfg.WriteLine("Action=" + action);
+  cfg.Close();
+
+  // Prima riga scritta subito da JS
+  writeLog("STEP|2|Avvio...");
+  writeLog("LOG|info|Avvio in corso...");
 
   var psExe = sh.ExpandEnvironmentStrings("%SystemRoot%")
             + "\\System32\\WindowsPowerShell\\v1.0\\powershell.exe";
   var ps1 = baseDir + "_sistema\\_setup_runner.ps1";
-  var cmd = "\"" + psExe + "\" -NonInteractive -ExecutionPolicy Bypass"
-          + " -File \"" + ps1 + "\""
-          + " -LogFile \"" + logFile + "\""
-          + " -Action " + action;
+  var cmd = "\"" + psExe + "\" -WindowStyle Hidden -NonInteractive -NoProfile"
+          + " -ExecutionPolicy Bypass"
+          + " -File \"" + ps1 + "\"";
   sh.Run(cmd, 0, false);
 
+  // Timeout: se dopo 10s PS non scrive, mostra errore
+  window.setTimeout(checkTimeout, 10000);
   window.setInterval(pollLog, 700);
 }
 
@@ -345,13 +353,20 @@ function endBtnClick() {
 function byId(id) { return document.getElementById(id); }
 function pad(n)   { return n < 10 ? "0" + n : "" + n; }
 
-// Scrive una riga nel log file (usato da JS prima che parta il PS1)
 function writeLog(line) {
   try {
-    var ts = fs.OpenTextFile(logFile, 8, true); // 8=append, true=crea se non esiste
+    var ts = fs.OpenTextFile(logFile, 8, true);
     ts.WriteLine(line);
     ts.Close();
   } catch(e) {}
+}
+
+function checkTimeout() {
+  if (done || hasErr || lastLine > 2) return; // PS ha già scritto qualcosa
+  addLine("err", "PowerShell non risponde. Prova a cliccare Riprova.");
+  addLine("info", "Se il problema persiste: tasto destro su AVVIA.hta > Proprieta > Sblocca");
+  hasErr = true;
+  showBtn("RIPROVA", "btn-b-end");
 }
 </script>
 </head>
