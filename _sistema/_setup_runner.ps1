@@ -7,13 +7,13 @@ param(
 $SISTEMA = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ROOT    = Split-Path -Parent $SISTEMA
 
-function W-Step($pct, $msg) { "STEP|$pct|$msg"   | Add-Content $LogFile -Encoding UTF8 }
-function W-Ok($msg)         { "LOG|ok|$msg"       | Add-Content $LogFile -Encoding UTF8 }
-function W-Warn($msg)       { "LOG|warn|$msg"     | Add-Content $LogFile -Encoding UTF8 }
-function W-Err($msg)        { "LOG|err|$msg"      | Add-Content $LogFile -Encoding UTF8 }
-function W-Info($msg)       { "LOG|info|$msg"     | Add-Content $LogFile -Encoding UTF8 }
-function W-Done($what)      { "DONE|$what|ok"     | Add-Content $LogFile -Encoding UTF8 }
-function W-Fatal($msg)      { "ERROR|0|$msg"      | Add-Content $LogFile -Encoding UTF8 }
+function W-Step($pct, $msg) { "STEP|$pct|$msg"   | Add-Content $LogFile -Encoding ASCII }
+function W-Ok($msg)         { "LOG|ok|$msg"       | Add-Content $LogFile -Encoding ASCII }
+function W-Warn($msg)       { "LOG|warn|$msg"     | Add-Content $LogFile -Encoding ASCII }
+function W-Err($msg)        { "LOG|err|$msg"      | Add-Content $LogFile -Encoding ASCII }
+function W-Info($msg)       { "LOG|info|$msg"     | Add-Content $LogFile -Encoding ASCII }
+function W-Done($what)      { "DONE|$what|ok"     | Add-Content $LogFile -Encoding ASCII }
+function W-Fatal($msg)      { "ERROR|0|$msg"      | Add-Content $LogFile -Encoding ASCII }
 
 # ── DISINSTALLA ───────────────────────────────────────────────────────────────
 if ($Action -eq "uninstall") {

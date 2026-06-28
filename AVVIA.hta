@@ -10,6 +10,7 @@
   SINGLEINSTANCE="yes"
   SCROLL="no"
   INNERBORDER="no"
+  ICON="%SystemRoot%\System32\imageres.dll,109"
 />
 <meta http-equiv="X-UA-Compatible" content="IE=11">
 <title>Trascrittore AI</title>
@@ -238,8 +239,14 @@ function startProcess(action) {
 
   if (fs.FileExists(logFile)) fs.DeleteFile(logFile);
 
+  // Prima riga scritta subito da JS (conferma che il processo è partito)
+  writeLog("STEP|2|Avvio installazione...");
+  writeLog("LOG|info|Avvio PowerShell runner...");
+
+  var psExe = sh.ExpandEnvironmentStrings("%SystemRoot%")
+            + "\\System32\\WindowsPowerShell\\v1.0\\powershell.exe";
   var ps1 = baseDir + "_sistema\\_setup_runner.ps1";
-  var cmd = "powershell -NonInteractive -ExecutionPolicy Bypass"
+  var cmd = "\"" + psExe + "\" -NonInteractive -ExecutionPolicy Bypass"
           + " -File \"" + ps1 + "\""
           + " -LogFile \"" + logFile + "\""
           + " -Action " + action;
@@ -337,6 +344,15 @@ function endBtnClick() {
 
 function byId(id) { return document.getElementById(id); }
 function pad(n)   { return n < 10 ? "0" + n : "" + n; }
+
+// Scrive una riga nel log file (usato da JS prima che parta il PS1)
+function writeLog(line) {
+  try {
+    var ts = fs.OpenTextFile(logFile, 8, true); // 8=append, true=crea se non esiste
+    ts.WriteLine(line);
+    ts.Close();
+  } catch(e) {}
+}
 </script>
 </head>
 
