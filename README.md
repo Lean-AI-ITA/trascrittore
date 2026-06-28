@@ -6,28 +6,36 @@ Trascrivi automaticamente video e audio in testo usando l'intelligenza artificia
 
 ## 📁 Contenuto della cartella
 
+> **Branch `portable` — installazione automatica con un clic**
+
 ```
 📁 Trascrittore/
-├── INSTALLA_E_AVVIA.html        ← Apri questo per iniziare (wizard guidato)
-├── trascrittore.py              ← Applicazione principale
-├── 0.CONTROLLO_PYTHON.bat       ← Verifica installazione Python
-├── 1.CREA_AMBIENTE_PULITO.bat   ← Crea l'ambiente virtuale
-├── 2.INSTALLA_WHISPER.bat       ← Installa il motore AI
-├── 3.AVVIO_TRASCRITTORE.bat     ← Avvia l'applicazione
-└── ffmpeg.exe                   ← Da scaricare (vedi sotto)
+├── AVVIA.vbs                    ← Doppio click qui per iniziare (unica cosa da fare)
+├── Avvia Trascrittore.lnk      ← Scorciatoia con icona (creata automaticamente)
+└── _sistema/                   ← File di sistema (non toccare)
 ```
+
+### Cosa fa `AVVIA.vbs`:
+1. Apre una finestra grafica di installazione (nessun terminale nero)
+2. Scarica e installa Python se mancante
+3. Crea l'ambiente virtuale
+4. Installa il motore AI (faster-whisper)
+5. Scarica FFmpeg
+6. Scarica il modello Whisper base (~150 MB)
+7. Crea una scorciatoia con icona nella cartella e sul Desktop
+8. Mostra il pulsante **"AVVIA IL TRASCRITTORE"** quando tutto è pronto
+
+**Tempo stimato: 5–15 minuti** (solo la prima volta)
 
 ---
 
 ## 🚀 Installazione (prima volta)
 
-### Metodo consigliato — Wizard HTML
+### Un solo clic
 
-1. Apri **`INSTALLA_E_AVVIA.html`** in qualsiasi browser (Chrome, Edge, Firefox)
-2. Segui i 6 passi guidati — ogni passo ha istruzioni e link diretti
-3. Tempo stimato: **5–15 minuti**
+Doppio click su **`AVVIA.vbs`** — il resto è automatico.
 
-### Metodo manuale — file .bat in sequenza
+### Metodo manuale — file .bat in sequenza (branch principale)
 
 Esegui i file nell'ordine indicato dal numero:
 
