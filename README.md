@@ -4,6 +4,14 @@ Trascrivi video e audio in testo con intelligenza artificiale, **offline dopo la
 
 ---
 
+## Download
+
+**[⬇ Scarica ZIP](https://github.com/lean-ai-ita/trascrittore/archive/refs/heads/portable.zip)**
+
+Estrai lo zip, apri la cartella ed è pronto.
+
+---
+
 ## Come si usa
 
 Doppio click su **`AVVIA.hta`** — fine.
