@@ -252,14 +252,35 @@ function startProcess(action) {
 
   var psExe = sh.ExpandEnvironmentStrings("%SystemRoot%")
             + "\\System32\\WindowsPowerShell\\v1.0\\powershell.exe";
-  var ps1 = baseDir + "_sistema\\_setup_runner.ps1";
+  var ps1Src = baseDir + "_sistema\\_setup_runner.ps1";
+
+  // Copia lo script in %TEMP% per evitare il blocco Zone Identifier:
+  // quando il pacchetto viene estratto da uno zip, Windows marca TUTTI i file
+  // con il Zone Identifier. Anche dopo aver sbloccato AVVIA.hta, il .ps1
+  // può rimanere bloccato e PowerShell si rifiuta di eseguirlo.
+  // I file creati in %TEMP% dall'HTA non hanno questo blocco.
+  var tempPs1 = sh.ExpandEnvironmentStrings("%TEMP%") + "\\trascrittore_runner.ps1";
+  try {
+    var srcFile = fs.OpenTextFile(ps1Src, 1, false);
+    var ps1Content = srcFile.ReadAll();
+    srcFile.Close();
+    var dstFile = fs.OpenTextFile(tempPs1, 2, true);
+    dstFile.Write(ps1Content);
+    dstFile.Close();
+  } catch(e) {
+    addLine("err", "Impossibile leggere _setup_runner.ps1: " + e.message);
+    hasErr = true;
+    showBtn("RIPROVA", "btn-b-end");
+    return;
+  }
+
   var cmd = "\"" + psExe + "\" -WindowStyle Hidden -NonInteractive -NoProfile"
           + " -ExecutionPolicy Bypass"
-          + " -File \"" + ps1 + "\"";
+          + " -File \"" + tempPs1 + "\"";
   sh.Run(cmd, 0, false);
 
-  // Timeout: se dopo 10s PS non scrive, mostra errore
-  window.setTimeout(checkTimeout, 10000);
+  // Timeout: se dopo 20s PS non scrive, mostra errore
+  window.setTimeout(checkTimeout, 20000);
   window.setInterval(pollLog, 700);
 }
 
@@ -364,7 +385,7 @@ function writeLog(line) {
 function checkTimeout() {
   if (done || hasErr || lastLine > 2) return; // PS ha già scritto qualcosa
   addLine("err", "PowerShell non risponde. Prova a cliccare Riprova.");
-  addLine("info", "Se il problema persiste: tasto destro su AVVIA.hta > Proprieta > Sblocca");
+  addLine("info", "Controlla che anche _sistema\\_setup_runner.ps1 sia sbloccato (Proprieta > Sblocca)");
   hasErr = true;
   showBtn("RIPROVA", "btn-b-end");
 }
