@@ -203,14 +203,18 @@ function startProcess(action) {
   writeLog("STEP|2|Avvio...");
   writeLog("LOG|info|Avvio in corso...");
 
-  // ── Scrivi .bat in %TEMP% (nessun Zone Identifier, nessuna policy) ──
-  var tempBat = sh.ExpandEnvironmentStrings("%TEMP%") + "\\trascrittore_setup.bat";
-  var root = baseDir.replace(/\\$/, "");   // rimuovi backslash finale
+  // ── Scrivi file in %TEMP% (nessun Zone Identifier, nessuna policy) ──
+  var tempBat    = sh.ExpandEnvironmentStrings("%TEMP%") + "\\trascrittore_setup.bat";
+  var tempHelper = sh.ExpandEnvironmentStrings("%TEMP%") + "\\trascrittore_helper.py";
+  var root = baseDir.replace(/\\$/, "");
 
   try {
     var f = fs.OpenTextFile(tempBat, 2, true);
-    f.Write(buildBat(root, logFile, action));
+    f.Write(buildBat(root, logFile, tempHelper, action));
     f.Close();
+    var f2 = fs.OpenTextFile(tempHelper, 2, true);
+    f2.Write(buildHelper());
+    f2.Close();
   } catch(e) {
     addLine("err", "Errore scrittura script: " + e.message);
     hasErr = true;
@@ -225,8 +229,101 @@ function startProcess(action) {
   pollTimer = window.setInterval(pollLog, 700);
 }
 
+// ── HELPER PYTHON: progress per pip, download, modello ───────────────────────
+function buildHelper() {
+  var n = "\n";
+  var h = "";
+  h += "import sys, os, re, threading, time" + n;
+  h += "mode = sys.argv[1]" + n;
+  h += "logf = sys.argv[2]" + n;
+  h += n;
+  h += "def wlog(l):" + n;
+  h += "    try:" + n;
+  h += "        s = re.sub(r'[^\\x09\\x20-\\x7E]', '', str(l))" + n;
+  h += "        open(logf, 'a').write(s + '\\r\\n')" + n;
+  h += "    except: pass" + n;
+  h += n;
+  // ── modalita' pip ──────────────────────────────────────────────────────────
+  h += "if mode == 'pip':" + n;
+  h += "    import subprocess" + n;
+  h += "    pip_exe = sys.argv[3]" + n;
+  h += "    s0, s1  = int(sys.argv[4]), int(sys.argv[5])" + n;
+  h += "    done = [False]; t0 = time.time()" + n;
+  // heartbeat thread: avanza STEP gradualmente durante l'attesa
+  h += "    def hb():" + n;
+  h += "        while not done[0]:" + n;
+  h += "            el = int(time.time() - t0)" + n;
+  h += "            sp = min(s1 - 3, s0 + (s1 - s0) * min(el, 300) // 300)" + n;
+  h += "            wlog('STEP|{}|Passo 3/5 - pip install {}s...'.format(sp, el))" + n;
+  h += "            time.sleep(4)" + n;
+  h += "    threading.Thread(target=hb, daemon=True).start()" + n;
+  h += "    r = subprocess.run([pip_exe, 'install', 'faster-whisper']," + n;
+  h += "                       capture_output=True, text=True, encoding='utf-8', errors='replace')" + n;
+  h += "    done[0] = True; time.sleep(0.3)" + n;
+  // mostra pacchetti scaricati dopo il completamento
+  h += "    for line in (r.stdout + r.stderr).split('\\n'):" + n;
+  h += "        line = line.strip()" + n;
+  h += "        m = re.match(r'Downloading\\s+(\\S+\\.whl)\\s+\\((.+?)\\)', line)" + n;
+  h += "        if m: wlog('LOG|info|Scaricato: {} ({})'.format(m.group(1), m.group(2)))" + n;
+  h += "        elif 'Successfully installed' in line:" + n;
+  h += "            wlog('LOG|ok|' + re.sub(r'[^\\x20-\\x7E]','',line).strip())" + n;
+  h += "    if r.returncode != 0:" + n;
+  h += "        err = re.sub(r'[^\\x20-\\x7E]','',(r.stderr or '')[-300:]).strip()" + n;
+  h += "        wlog('ERROR|0|pip fallito: ' + err[:200]); sys.exit(1)" + n;
+  h += "    wlog('STEP|{}|Passo 3/5 - faster-whisper OK'.format(s1))" + n;
+  h += n;
+  // ── modalita' download con progress ───────────────────────────────────────
+  h += "elif mode == 'dl':" + n;
+  h += "    import urllib.request" + n;
+  h += "    url  = sys.argv[3]; dest = sys.argv[4]" + n;
+  h += "    s0, s1 = int(sys.argv[5]), int(sys.argv[6])" + n;
+  h += "    label  = sys.argv[7] if len(sys.argv) > 7 else 'Download'" + n;
+  h += "    last   = [-1]" + n;
+  h += "    def rh(count, block, total):" + n;
+  h += "        if total <= 0: return" + n;
+  h += "        d  = count * block" + n;
+  h += "        p  = min(100, d * 100 // total)" + n;
+  h += "        mb = d  // 1048576" + n;
+  h += "        mt = total // 1048576" + n;
+  h += "        sp = s0 + (s1 - s0) * p // 100" + n;
+  h += "        if p // 5 != last[0] // 5:" + n;
+  h += "            last[0] = p" + n;
+  h += "            wlog('STEP|{}|{}: {} MB / {} MB ({}%)'.format(sp, label, mb, mt, p))" + n;
+  h += "            wlog('LOG|info|{}: {} MB / {} MB ({}%)'.format(label, mb, mt, p))" + n;
+  h += "    try: urllib.request.urlretrieve(url, dest, rh)" + n;
+  h += "    except Exception as e:" + n;
+  h += "        wlog('ERROR|0|Download fallito: ' + str(e)[:200]); sys.exit(1)" + n;
+  h += n;
+  // ── modalita' modello whisper ──────────────────────────────────────────────
+  h += "elif mode == 'model':" + n;
+  h += "    model_dir = sys.argv[3]" + n;
+  h += "    s0, s1 = int(sys.argv[4]), int(sys.argv[5])" + n;
+  h += "    stop = [False]" + n;
+  h += "    def monitor():" + n;
+  h += "        while not stop[0]:" + n;
+  h += "            try:" + n;
+  h += "                total = sum(os.path.getsize(os.path.join(d,f))" + n;
+  h += "                            for d,_,files in os.walk(model_dir) for f in files)" + n;
+  h += "                mb = total // 1048576" + n;
+  h += "                sp = s0 + min(s1 - s0 - 2, mb * (s1 - s0) // 150)" + n;
+  h += "                wlog('STEP|{}|Passo 5/5 - Modello: {} MB / ~150 MB'.format(sp, mb))" + n;
+  h += "                wlog('LOG|info|Modello AI: {} MB scaricati su ~150 MB totali'.format(mb))" + n;
+  h += "            except: pass" + n;
+  h += "            time.sleep(3)" + n;
+  h += "    threading.Thread(target=monitor, daemon=True).start()" + n;
+  h += "    try:" + n;
+  h += "        from faster_whisper import WhisperModel" + n;
+  h += "        os.makedirs(model_dir, exist_ok=True)" + n;
+  h += "        WhisperModel('base', device='cpu', compute_type='int8', download_root=model_dir)" + n;
+  h += "    except Exception as e:" + n;
+  h += "        wlog('LOG|warn|Errore modello: ' + str(e)[:200])" + n;
+  h += "    finally: stop[0] = True" + n;
+  h += "    time.sleep(0.3)" + n;
+  return h;
+}
+
 // ── COSTRUISCE IL CONTENUTO DEL BAT ──────────────────────────────────────────
-function buildBat(root, logF, action) {
+function buildBat(root, logF, helperPy, action) {
   var n  = "\r\n";
   var b  = "";
 
@@ -239,6 +336,7 @@ function buildBat(root, logF, action) {
   b += "set \"VENV=%ROOT%\\trascrittore_env\"" + n;
   b += "set \"PY=%VENV%\\Scripts\\python.exe\"" + n;
   b += "set \"PIP=%VENV%\\Scripts\\pip.exe\"" + n;
+  b += "set \"HLP=" + helperPy + "\"" + n;
   b += n;
 
   // ── DISINSTALLA ──────────────────────────────────────────────────────────
@@ -271,7 +369,7 @@ function buildBat(root, logF, action) {
   // ── INSTALLA ─────────────────────────────────────────────────────────────
 
   // STEP 1: Python
-  b += "echo STEP^|5^|Controllo Python...>> \"%LOG%\"" + n;
+  b += "echo STEP^|5^|Passo 1/5 - Controllo Python...>> \"%LOG%\"" + n;
   b += "set \"PYCMD=\"" + n;
   b += "python --version >nul 2>&1" + n;
   b += "if not errorlevel 1 set \"PYCMD=python\"" + n;
@@ -281,7 +379,7 @@ function buildBat(root, logF, action) {
   b += ")" + n;
   b += "if not defined PYCMD (" + n;
   b += "  echo LOG^|warn^|Python non trovato - scarico installer...>> \"%LOG%\"" + n;
-  b += "  echo STEP^|8^|Download Python 3.11...>> \"%LOG%\"" + n;
+  b += "  echo STEP^|8^|Passo 1/5 - Download Python 3.11...>> \"%LOG%\"" + n;
   b += "  call :dl \"https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe\" \"%TEMP%\\py_setup.exe\"" + n;
   b += "  if errorlevel 1 (" + n;
   b += "    echo ERROR^|0^|Impossibile scaricare Python. Verifica la connessione internet.>> \"%LOG%\"" + n;
@@ -306,7 +404,7 @@ function buildBat(root, logF, action) {
   b += n;
 
   // STEP 2: Venv
-  b += "echo STEP^|28^|Creo ambiente virtuale...>> \"%LOG%\"" + n;
+  b += "echo STEP^|28^|Passo 2/5 - Creo ambiente virtuale...>> \"%LOG%\"" + n;
   b += "if not exist \"%PY%\" (" + n;
   b += "  !PYCMD! -m venv \"%VENV%\"" + n;
   b += "  if errorlevel 1 (" + n;
@@ -319,34 +417,31 @@ function buildBat(root, logF, action) {
   b += ")" + n;
   b += n;
 
-  // STEP 3: faster-whisper
-  b += "echo STEP^|42^|Installo faster-whisper...>> \"%LOG%\"" + n;
+  // STEP 3: faster-whisper via Python helper (progress animato ogni 4s)
+  b += "echo STEP^|42^|Passo 3/5 - Installo faster-whisper...>> \"%LOG%\"" + n;
   b += "\"%PIP%\" show faster-whisper >nul 2>&1" + n;
   b += "if errorlevel 1 (" + n;
-  b += "  echo LOG^|info^|Download circa 200 MB, attendere...>> \"%LOG%\"" + n;
-  b += "  \"%PIP%\" install faster-whisper --quiet" + n;
-  b += "  if errorlevel 1 (" + n;
-  b += "    echo ERROR^|0^|Installazione faster-whisper fallita. Controlla la connessione.>> \"%LOG%\"" + n;
-  b += "    exit /b 1" + n;
-  b += "  )" + n;
+  b += "  echo LOG^|info^|Avvio download pacchetti pip (~200 MB, 2-5 min)...>> \"%LOG%\"" + n;
+  b += "  \"%PY%\" \"%HLP%\" pip \"%LOG%\" \"%PIP%\" 42 62" + n;
+  b += "  if errorlevel 1 exit /b 1" + n;
   b += "  echo LOG^|ok^|faster-whisper installato>> \"%LOG%\"" + n;
   b += ") else (" + n;
   b += "  echo LOG^|ok^|faster-whisper gia presente>> \"%LOG%\"" + n;
+  b += "  echo STEP^|62^|Passo 3/5 - faster-whisper OK>> \"%LOG%\"" + n;
   b += ")" + n;
   b += n;
 
-  // STEP 4: FFmpeg
-  b += "echo STEP^|65^|Controllo FFmpeg...>> \"%LOG%\"" + n;
+  // STEP 4: FFmpeg via Python helper (progress X MB / 80 MB)
+  b += "echo STEP^|63^|Passo 4/5 - Controllo FFmpeg...>> \"%LOG%\"" + n;
   b += "if not exist \"%ROOT%\\ffmpeg.exe\" (" + n;
-  b += "  echo LOG^|warn^|Download FFmpeg circa 80 MB...>> \"%LOG%\"" + n;
-  b += "  call :dl \"https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip\" \"%TEMP%\\ffmpeg_pkg.zip\"" + n;
+  b += "  echo LOG^|warn^|Download FFmpeg (~80 MB)...>> \"%LOG%\"" + n;
+  b += "  \"%PY%\" \"%HLP%\" dl \"%LOG%\" \"https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip\" \"%TEMP%\\ffmpeg_pkg.zip\" 63 78 \"Passo 4/5 - FFmpeg\"" + n;
   b += "  if errorlevel 1 (" + n;
   b += "    echo LOG^|warn^|Download FFmpeg fallito - continuo senza (solo audio MP3/WAV)>> \"%LOG%\"" + n;
   b += "    goto :model" + n;
   b += "  )" + n;
-  b += "  echo LOG^|info^|Estrazione FFmpeg...>> \"%LOG%\"" + n;
+  b += "  echo LOG^|info^|Passo 4/5 - Estrazione FFmpeg...>> \"%LOG%\"" + n;
   b += "  mkdir \"%TEMP%\\ffmpeg_ext\" >nul 2>&1" + n;
-  // Try tar (Win10+) then PowerShell -Command one-liner (safe: no -File, no zone issue)
   b += "  tar -xf \"%TEMP%\\ffmpeg_pkg.zip\" -C \"%TEMP%\\ffmpeg_ext\" >nul 2>&1" + n;
   b += "  if errorlevel 1 (" + n;
   b += "    powershell -NoProfile -ExecutionPolicy Bypass -Command \"Expand-Archive '%TEMP%\\ffmpeg_pkg.zip' '%TEMP%\\ffmpeg_ext' -Force\"" + n;
@@ -358,27 +453,30 @@ function buildBat(root, logF, action) {
   b += "  rmdir /s /q \"%TEMP%\\ffmpeg_ext\" >nul 2>&1" + n;
   b += "  del /f \"%TEMP%\\ffmpeg_pkg.zip\" >nul 2>&1" + n;
   b += "  if exist \"%ROOT%\\ffmpeg.exe\" (" + n;
+  b += "    echo STEP^|79^|Passo 4/5 - FFmpeg installato>> \"%LOG%\"" + n;
   b += "    echo LOG^|ok^|FFmpeg installato>> \"%LOG%\"" + n;
   b += "  ) else (" + n;
   b += "    echo LOG^|warn^|FFmpeg non trovato dopo estrazione - continuo senza>> \"%LOG%\"" + n;
   b += "  )" + n;
   b += ") else (" + n;
+  b += "  echo STEP^|79^|Passo 4/5 - FFmpeg OK>> \"%LOG%\"" + n;
   b += "  echo LOG^|ok^|FFmpeg gia presente>> \"%LOG%\"" + n;
   b += ")" + n;
   b += n;
 
-  // STEP 5: Whisper model
+  // STEP 5: Modello Whisper via Python helper (progress X MB / 150 MB ogni 3s)
   b += ":model" + n;
-  b += "echo STEP^|82^|Download modello Whisper base...>> \"%LOG%\"" + n;
+  b += "echo STEP^|82^|Passo 5/5 - Download modello Whisper base...>> \"%LOG%\"" + n;
   b += "if not exist \"%ROOT%\\models\\base\\model.bin\" (" + n;
-  b += "  echo LOG^|info^|Download modello AI circa 150 MB...>> \"%LOG%\"" + n;
-  b += "  \"%PY%\" -c \"from faster_whisper import WhisperModel; WhisperModel('base', device='cpu', compute_type='int8', download_root=r'%ROOT%\\models')\" >nul 2>&1" + n;
+  b += "  echo LOG^|info^|Download modello AI (~150 MB, 1-3 min)...>> \"%LOG%\"" + n;
+  b += "  \"%PY%\" \"%HLP%\" model \"%LOG%\" \"%ROOT%\\models\" 82 99" + n;
   b += "  if exist \"%ROOT%\\models\\base\\model.bin\" (" + n;
   b += "    echo LOG^|ok^|Modello AI pronto>> \"%LOG%\"" + n;
   b += "  ) else (" + n;
   b += "    echo LOG^|warn^|Modello verra scaricato al primo avvio>> \"%LOG%\"" + n;
   b += "  )" + n;
   b += ") else (" + n;
+  b += "  echo STEP^|99^|Passo 5/5 - Modello OK>> \"%LOG%\"" + n;
   b += "  echo LOG^|ok^|Modello AI gia presente>> \"%LOG%\"" + n;
   b += ")" + n;
   b += n;
