@@ -148,7 +148,9 @@ function Init() {
     .replace("file:///", "")
     .replace(/%20/g, " ")
     .replace(/\//g, "\\");
-  baseDir = h.substring(0, h.lastIndexOf("\\") + 1);
+  // HTA lives in _sistema\, go up one level to reach the root folder
+  var sysDir = h.substring(0, h.lastIndexOf("\\"));
+  baseDir = sysDir.substring(0, sysDir.lastIndexOf("\\") + 1);
 
   window.resizeTo(520, 440);
   window.moveTo(
@@ -159,8 +161,9 @@ function Init() {
 
 // ── BOTTONE PRINCIPALE ────────────────────────────────────────────────────────
 function avvia() {
-  var py = baseDir + "trascrittore_env\\Scripts\\python.exe";
-  if (fs.FileExists(py)) {
+  var py     = baseDir + "trascrittore_env\\Scripts\\python.exe";
+  var marker = baseDir + "trascrittore_env\\.installed_ok";
+  if (fs.FileExists(py) && fs.FileExists(marker)) {
     var app = baseDir + "_sistema\\trascrittore_portable.py";
     sh.Run("\"" + py + "\" \"" + app + "\"", 1, false);
     window.close();
@@ -484,6 +487,7 @@ function buildBat(root, logF, helperPy, action) {
   // Fine
   b += "echo STEP^|100^|Installazione completata!>> \"%LOG%\"" + n;
   b += "echo LOG^|ok^|Tutto pronto!>> \"%LOG%\"" + n;
+  b += "type nul > \"%ROOT%\\trascrittore_env\\.installed_ok\"" + n;
   b += "echo DONE^|done^|ok>> \"%LOG%\"" + n;
   b += "exit /b 0" + n;
   b += n;
