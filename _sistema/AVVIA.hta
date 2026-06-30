@@ -161,17 +161,39 @@ function Init() {
 
 // ── BOTTONE PRINCIPALE ────────────────────────────────────────────────────────
 function avvia() {
-  var py     = baseDir + "trascrittore_env\\Scripts\\python.exe";
-  var marker = baseDir + "trascrittore_env\\.installed_ok";
-  if (fs.FileExists(py) && fs.FileExists(marker)) {
+  isDis = false;
+
+  // Mostra subito il pannello progress per il check
+  byId("pHome").style.display     = "none";
+  byId("pProgress").style.display = "block";
+  byId("phTitle").innerText = "Controllo componenti";
+  byId("phSub").innerText   = "Verifico cosa è installato...";
+  byId("fillBar").style.width = "15%";
+  byId("stepLbl").innerText   = "Controllo in corso...";
+
+  var py    = baseDir + "trascrittore_env\\Scripts\\python.exe";
+  var fwDir = baseDir + "trascrittore_env\\Lib\\site-packages\\faster_whisper";
+  var ffmp  = baseDir + "ffmpeg.exe";
+  var model = baseDir + "models\\base\\model.bin";
+
+  var hasVenv  = fs.FileExists(py);
+  var hasPkg   = hasVenv && fs.FolderExists(fwDir);
+  var hasFfmp  = fs.FileExists(ffmp);
+  var hasModel = fs.FileExists(model);
+
+  addLine(hasVenv  ? "ok" : "warn", "Ambiente Python:    " + (hasVenv  ? "OK" : "da installare"));
+  addLine(hasPkg   ? "ok" : "warn", "faster-whisper:     " + (hasPkg   ? "OK" : "da installare"));
+  addLine(hasFfmp  ? "ok" : "info", "FFmpeg:             " + (hasFfmp  ? "OK" : "assente (solo audio MP3/WAV)"));
+  addLine(hasModel ? "ok" : "warn", "Modello Whisper:    " + (hasModel ? "OK" : "da scaricare"));
+
+  if (hasVenv && hasPkg && hasModel) {
+    byId("fillBar").style.width = "100%";
+    byId("stepLbl").innerText   = "Tutto pronto — avvio in corso...";
     var app = baseDir + "_sistema\\trascrittore_portable.py";
     sh.Run("\"" + py + "\" \"" + app + "\"", 1, false);
     window.close();
   } else {
-    byId("heroBtn").disabled  = true;
-    byId("heroBtn").innerText = "Installazione in corso...";
-    byId("statusTxt").style.display = "block";
-    isDis = false;
+    addLine("info", "Avvio installazione componenti mancanti...");
     startProcess("install");
   }
 }
@@ -203,7 +225,7 @@ function startProcess(action) {
   }
 
   if (fs.FileExists(logFile)) fs.DeleteFile(logFile);
-  writeLog("STEP|2|Avvio...");
+  writeLog("STEP|5|Avvio installazione...");
   writeLog("LOG|info|Avvio in corso...");
 
   // ── Scrivi file in %TEMP% (nessun Zone Identifier, nessuna policy) ──
@@ -487,7 +509,6 @@ function buildBat(root, logF, helperPy, action) {
   // Fine
   b += "echo STEP^|100^|Installazione completata!>> \"%LOG%\"" + n;
   b += "echo LOG^|ok^|Tutto pronto!>> \"%LOG%\"" + n;
-  b += "type nul > \"%ROOT%\\trascrittore_env\\.installed_ok\"" + n;
   b += "echo DONE^|done^|ok>> \"%LOG%\"" + n;
   b += "exit /b 0" + n;
   b += n;
