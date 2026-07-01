@@ -12,6 +12,7 @@
   INNERBORDER="no"
   ICON="%SystemRoot%\System32\imageres.dll,109"
 />
+<meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=11">
 <title>Trascrittore AI</title>
 <style>
@@ -167,7 +168,7 @@ function avvia() {
   byId("pHome").style.display     = "none";
   byId("pProgress").style.display = "block";
   byId("phTitle").innerText = "Controllo componenti";
-  byId("phSub").innerText   = "Verifico cosa è installato...";
+  byId("phSub").innerText   = "Verifico cosa \u00e8 installato...";
   byId("fillBar").style.width = "15%";
   byId("stepLbl").innerText   = "Controllo in corso...";
 
@@ -189,15 +190,14 @@ function avvia() {
 
   if (hasVenv && hasPkg && hasModel) {
     byId("fillBar").style.width = "100%";
-    byId("stepLbl").innerText   = "Tutto pronto — avvio in corso...";
+    byId("stepLbl").innerText   = "Tutto pronto \u2014 avvio in corso...";
     var app = baseDir + "_sistema\\trascrittore_portable.py";
     sh.Run("\"" + py + "\" \"" + app + "\"", 1, false);
     window.close();
   } else {
     byId("fillBar").style.width = "20%";
-    byId("stepLbl").innerText   = "Componenti mancanti — premi il bottone per installare";
-    needInstall = true;
-    showBtn("INSTALLA COMPONENTI MANCANTI", "");
+    byId("stepLbl").innerText   = "Avvio installazione tra 2 secondi...";
+    window.setTimeout(function() { startProcess("install"); }, 2000);
   }
 }
 
