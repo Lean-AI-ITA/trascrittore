@@ -136,7 +136,7 @@ body {
 
 <script type="text/javascript">
 var sh, fs, logFile, baseDir;
-var lastLine = 0, done = false, hasErr = false, isDis = false;
+var lastLine = 0, done = false, hasErr = false, isDis = false, needInstall = false;
 var pollTimer = null;
 
 function Init() {
@@ -181,6 +181,7 @@ function avvia() {
   var hasFfmp  = fs.FileExists(ffmp);
   var hasModel = fs.FileExists(model);
 
+  addLine("info", "Cartella rilevata: " + baseDir);
   addLine(hasVenv  ? "ok" : "warn", "Ambiente Python:    " + (hasVenv  ? "OK" : "da installare"));
   addLine(hasPkg   ? "ok" : "warn", "faster-whisper:     " + (hasPkg   ? "OK" : "da installare"));
   addLine(hasFfmp  ? "ok" : "info", "FFmpeg:             " + (hasFfmp  ? "OK" : "assente (solo audio MP3/WAV)"));
@@ -193,8 +194,10 @@ function avvia() {
     sh.Run("\"" + py + "\" \"" + app + "\"", 1, false);
     window.close();
   } else {
-    addLine("info", "Avvio installazione componenti mancanti...");
-    startProcess("install");
+    byId("fillBar").style.width = "20%";
+    byId("stepLbl").innerText   = "Componenti mancanti — premi il bottone per installare";
+    needInstall = true;
+    showBtn("INSTALLA COMPONENTI MANCANTI", "");
   }
 }
 
@@ -268,33 +271,39 @@ function buildHelper() {
   h += "        open(logf, 'a').write(s + '\\r\\n')" + n;
   h += "    except: pass" + n;
   h += n;
-  // ── modalita' pip ──────────────────────────────────────────────────────────
+  // ── modalita' pip: streaming in tempo reale ───────────────────────────────
   h += "if mode == 'pip':" + n;
   h += "    import subprocess" + n;
   h += "    pip_exe = sys.argv[3]" + n;
   h += "    s0, s1  = int(sys.argv[4]), int(sys.argv[5])" + n;
   h += "    done = [False]; t0 = time.time()" + n;
-  // heartbeat thread: avanza STEP gradualmente durante l'attesa
   h += "    def hb():" + n;
   h += "        while not done[0]:" + n;
   h += "            el = int(time.time() - t0)" + n;
   h += "            sp = min(s1 - 3, s0 + (s1 - s0) * min(el, 300) // 300)" + n;
-  h += "            wlog('STEP|{}|Passo 3/5 - pip install {}s...'.format(sp, el))" + n;
-  h += "            time.sleep(4)" + n;
+  h += "            wlog('STEP|{}|Passo 3/5 - download pacchetti {}s...'.format(sp, el))" + n;
+  h += "            time.sleep(2)" + n;
   h += "    threading.Thread(target=hb, daemon=True).start()" + n;
-  h += "    r = subprocess.run([pip_exe, 'install', 'faster-whisper']," + n;
-  h += "                       capture_output=True, text=True, encoding='utf-8', errors='replace')" + n;
-  h += "    done[0] = True; time.sleep(0.3)" + n;
-  // mostra pacchetti scaricati dopo il completamento
-  h += "    for line in (r.stdout + r.stderr).split('\\n'):" + n;
-  h += "        line = line.strip()" + n;
-  h += "        m = re.match(r'Downloading\\s+(\\S+\\.whl)\\s+\\((.+?)\\)', line)" + n;
-  h += "        if m: wlog('LOG|info|Scaricato: {} ({})'.format(m.group(1), m.group(2)))" + n;
+  // streaming output: pip mostra ogni riga man mano che scarica
+  h += "    proc = subprocess.Popen(" + n;
+  h += "        [pip_exe, 'install', 'faster-whisper', '--no-cache-dir', '--progress-bar', 'off']," + n;
+  h += "        stdout=subprocess.PIPE, stderr=subprocess.STDOUT," + n;
+  h += "        text=True, encoding='utf-8', errors='replace'" + n;
+  h += "    )" + n;
+  h += "    for line in proc.stdout:" + n;
+  h += "        line = re.sub(r'[^\\x20-\\x7E]', '', line).strip()" + n;
+  h += "        if not line: continue" + n;
+  h += "        m = re.match(r'Downloading\\s+(\\S+\\.whl).*?\\((.+?)\\)', line)" + n;
+  h += "        if m:" + n;
+  h += "            wlog('LOG|info|Scarico: {} ({})'.format(m.group(1)[:55], m.group(2)))" + n;
+  h += "        elif re.match(r'(Collecting|Obtaining|Using cached|Installing collected)', line):" + n;
+  h += "            wlog('LOG|info|' + line[:80])" + n;
   h += "        elif 'Successfully installed' in line:" + n;
-  h += "            wlog('LOG|ok|' + re.sub(r'[^\\x20-\\x7E]','',line).strip())" + n;
-  h += "    if r.returncode != 0:" + n;
-  h += "        err = re.sub(r'[^\\x20-\\x7E]','',(r.stderr or '')[-300:]).strip()" + n;
-  h += "        wlog('ERROR|0|pip fallito: ' + err[:200]); sys.exit(1)" + n;
+  h += "            wlog('LOG|ok|' + line[:100])" + n;
+  h += "    proc.wait()" + n;
+  h += "    done[0] = True; time.sleep(0.2)" + n;
+  h += "    if proc.returncode != 0:" + n;
+  h += "        wlog('ERROR|0|pip fallito (codice {})'.format(proc.returncode)); sys.exit(1)" + n;
   h += "    wlog('STEP|{}|Passo 3/5 - faster-whisper OK'.format(s1))" + n;
   h += n;
   // ── modalita' download con progress ───────────────────────────────────────
@@ -601,7 +610,11 @@ function showBtn(label, cls) {
 }
 
 function endBtnClick() {
-  if (hasErr) {
+  if (needInstall) {
+    needInstall = false;
+    byId("endBtn").style.display = "none";
+    startProcess("install");
+  } else if (hasErr) {
     location.reload();
   } else {
     if (!isDis) {
