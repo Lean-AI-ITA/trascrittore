@@ -186,12 +186,20 @@ function avvia() {
   var py    = baseDir + "trascrittore_env\\Scripts\\python.exe";
   var fwDir = baseDir + "trascrittore_env\\Lib\\site-packages\\faster_whisper";
   var ffmp  = baseDir + "ffmpeg.exe";
-  var model = baseDir + "models\\base\\model.bin";
 
   var hasVenv  = fs.FileExists(py);
   var hasPkg   = hasVenv && fs.FolderExists(fwDir);
   var hasFfmp  = fs.FileExists(ffmp);
-  var hasModel = fs.FileExists(model);
+  // Cerca model.bin in qualsiasi sottocartella di models\ (supporta formato old e nuovo HF hub)
+  var hasModel = false;
+  if (fs.FolderExists(baseDir + "models")) {
+    try {
+      var modelSearch = new ActiveXObject("WScript.Shell").Exec("cmd /c dir /s /b \"" + baseDir + "models\\model.bin\" 2>nul");
+      hasModel = (modelSearch.StdOut.ReadAll().length > 0);
+    } catch(e) {
+      hasModel = fs.FileExists(baseDir + "models\\base\\model.bin");
+    }
+  }
 
   addLine("info", "Cartella rilevata: " + baseDir);
   addLine(hasVenv  ? "ok" : "warn", "Ambiente Python:    " + (hasVenv  ? "OK" : "da installare"));
@@ -282,40 +290,27 @@ function buildHelper() {
   h += "        open(logf, 'a').write(s + '\\r\\n')" + n;
   h += "    except: pass" + n;
   h += n;
-  // ── modalita' pip: streaming in tempo reale ───────────────────────────────
-  h += "if mode == 'pip':" + n;
+  // ── modalita' pip_run: esegue pip e mostra output riga per riga nell'UI ──────
+  h += "if mode == 'pip_run':" + n;
   h += "    import subprocess" + n;
   h += "    pip_exe = sys.argv[3]" + n;
-  h += "    s0, s1  = int(sys.argv[4]), int(sys.argv[5])" + n;
-  h += "    done = [False]; t0 = time.time()" + n;
-  h += "    def hb():" + n;
-  h += "        while not done[0]:" + n;
-  h += "            el = int(time.time() - t0)" + n;
-  h += "            sp = min(s1 - 3, s0 + (s1 - s0) * min(el, 300) // 300)" + n;
-  h += "            wlog('STEP|{}|Passo 3/5 - download pacchetti {}s...'.format(sp, el))" + n;
-  h += "            time.sleep(2)" + n;
-  h += "    threading.Thread(target=hb, daemon=True).start()" + n;
-  // streaming output: pip mostra ogni riga man mano che scarica
+  h += "    args = sys.argv[4:]" + n;
   h += "    proc = subprocess.Popen(" + n;
-  h += "        [pip_exe, 'install', 'faster-whisper', '--no-cache-dir', '--progress-bar', 'off']," + n;
+  h += "        [pip_exe] + args," + n;
   h += "        stdout=subprocess.PIPE, stderr=subprocess.STDOUT," + n;
   h += "        text=True, encoding='utf-8', errors='replace'" + n;
   h += "    )" + n;
   h += "    for line in proc.stdout:" + n;
   h += "        line = re.sub(r'[^\\x20-\\x7E]', '', line).strip()" + n;
   h += "        if not line: continue" + n;
-  h += "        m = re.match(r'Downloading\\s+(\\S+\\.whl).*?\\((.+?)\\)', line)" + n;
-  h += "        if m:" + n;
-  h += "            wlog('LOG|info|Scarico: {} ({})'.format(m.group(1)[:55], m.group(2)))" + n;
-  h += "        elif re.match(r'(Collecting|Obtaining|Using cached|Installing collected)', line):" + n;
-  h += "            wlog('LOG|info|' + line[:80])" + n;
-  h += "        elif 'Successfully installed' in line:" + n;
-  h += "            wlog('LOG|ok|' + line[:100])" + n;
+  h += "        if 'Successfully installed' in line:" + n;
+  h += "            wlog('LOG|ok|' + line[:120])" + n;
+  h += "        elif any(x in line for x in ['ERROR', 'error', 'Could not', 'No matching', 'FAILED', 'Exception']):" + n;
+  h += "            wlog('LOG|warn|pip: ' + line[:120])" + n;
+  h += "        elif any(x in line for x in ['Collecting', 'Downloading', 'Installing', 'Using cached', 'Requirement']):" + n;
+  h += "            wlog('LOG|info|' + line[:120])" + n;
   h += "    proc.wait()" + n;
-  h += "    done[0] = True; time.sleep(0.2)" + n;
-  h += "    if proc.returncode != 0:" + n;
-  h += "        wlog('ERROR|0|pip fallito (codice {})'.format(proc.returncode)); sys.exit(1)" + n;
-  h += "    wlog('STEP|{}|Passo 3/5 - faster-whisper OK'.format(s1))" + n;
+  h += "    sys.exit(proc.returncode)" + n;
   h += n;
   // ── modalita' download con progress ───────────────────────────────────────
   h += "elif mode == 'dl':" + n;
@@ -486,14 +481,18 @@ function buildBat(root, logF, helperPy, action) {
   b += "for /f \"delims=\" %%f in ('dir /s /b \"%TEMP%\\trascrittore_wheels\\*.whl\" 2^>nul') do if not defined WHLDIR2 set \"WHLDIR2=%%~dpf\"" + n;
   b += "if defined WHLDIR2 set \"WHLDIR=%WHLDIR2%\"" + n;
   b += "echo LOG^|info^|Wheels: %WHLDIR%>> \"%LOG%\"" + n;
-  // Tentativo 1: solo locale
-  b += "\"%PIP%\" install --no-index --find-links \"%WHLDIR%\" faster-whisper --quiet >> \"%LOG%\" 2>&1" + n;
+  // Aggiorna pip per garantire compatibilita'
+  b += "echo LOG^|info^|Aggiornamento pip...>> \"%LOG%\"" + n;
+  b += "\"%PY%\" -m pip install --upgrade pip --quiet >nul 2>&1" + n;
+  // Tentativo 1: solo locale (nessuna connessione internet)
+  b += "echo LOG^|info^|Installo faster-whisper da pacchetti locali...>> \"%LOG%\"" + n;
+  b += "\"%PY%\" \"%HLP%\" pip_run \"%LOG%\" \"%PIP%\" install --no-index --find-links \"%WHLDIR%\" faster-whisper" + n;
   b += "if not errorlevel 1 goto :fw_pip_ok" + n;
   // Tentativo 2: locale + PyPI per dipendenze mancanti
   b += "echo LOG^|warn^|Tentativo con PyPI per dipendenze mancanti...>> \"%LOG%\"" + n;
-  b += "\"%PIP%\" install --find-links \"%WHLDIR%\" faster-whisper --quiet >> \"%LOG%\" 2>&1" + n;
+  b += "\"%PY%\" \"%HLP%\" pip_run \"%LOG%\" \"%PIP%\" install --find-links \"%WHLDIR%\" faster-whisper --timeout 120" + n;
   b += "if not errorlevel 1 goto :fw_pip_ok" + n;
-  b += "echo ERROR^|0^|pip install fallito - vedi log sopra per dettagli>> \"%LOG%\"" + n;
+  b += "echo ERROR^|0^|pip install fallito - vedi errori sopra nel log>> \"%LOG%\"" + n;
   b += "exit /b 1" + n;
   b += ":fw_pip_ok" + n;
   b += "del /f \"%TEMP%\\trascrittore_wheels.zip\" >nul 2>&1" + n;
@@ -533,10 +532,13 @@ function buildBat(root, logF, helperPy, action) {
   // STEP 5: Modello Whisper
   b += ":model" + n;
   b += "echo STEP^|82^|Passo 5/5 - Download modello Whisper base...>> \"%LOG%\"" + n;
-  b += "if exist \"%ROOT%\\models\\base\\model.bin\" goto :model_ok" + n;
+  // Cerca model.bin in qualsiasi sottocartella (supporta old e nuovo formato HF hub)
+  b += "dir /s /b \"%ROOT%\\models\\model.bin\" >nul 2>&1" + n;
+  b += "if not errorlevel 1 goto :model_ok" + n;
   b += "echo LOG^|info^|Download modello AI (~150 MB, 1-3 min)...>> \"%LOG%\"" + n;
   b += "\"%PY%\" \"%HLP%\" model \"%LOG%\" \"%ROOT%\\models\" 82 99" + n;
-  b += "if exist \"%ROOT%\\models\\base\\model.bin\" goto :model_ok" + n;
+  b += "dir /s /b \"%ROOT%\\models\\model.bin\" >nul 2>&1" + n;
+  b += "if not errorlevel 1 goto :model_ok" + n;
   b += "echo LOG^|warn^|Modello verra scaricato al primo avvio>> \"%LOG%\"" + n;
   b += "goto :done" + n;
   b += ":model_ok" + n;
