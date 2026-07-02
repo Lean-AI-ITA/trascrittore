@@ -471,15 +471,18 @@ function buildBat(root, logF, helperPy, action) {
   b += "echo LOG^|info^|Installo pacchetti locali...>> \"%LOG%\"" + n;
   // Trova dinamicamente la cartella con i .whl (struttura zip incognita)
   b += "set \"WHLDIR=%TEMP%\\trascrittore_wheels\"" + n;
+  b += "set \"WHLDIR2=\"" + n;
   b += "for /f \"delims=\" %%f in ('dir /s /b \"%TEMP%\\trascrittore_wheels\\*.whl\" 2^>nul') do if not defined WHLDIR2 set \"WHLDIR2=%%~dpf\"" + n;
   b += "if defined WHLDIR2 set \"WHLDIR=%WHLDIR2%\"" + n;
-  b += "echo LOG^|info^|Cartella wheels: %WHLDIR%>> \"%LOG%\"" + n;
-  b += "\"%PIP%\" install --no-index --find-links \"%WHLDIR%\" faster-whisper --quiet >nul 2>&1" + n;
+  b += "echo LOG^|info^|Wheels: %WHLDIR%>> \"%LOG%\"" + n;
+  // Tentativo 1: solo locale
+  b += "\"%PIP%\" install --no-index --find-links \"%WHLDIR%\" faster-whisper --quiet >> \"%LOG%\" 2>&1" + n;
   b += "if not errorlevel 1 goto :fw_pip_ok" + n;
-  b += "echo LOG^|warn^|Primo tentativo pip fallito, riprovo senza --no-index...>> \"%LOG%\"" + n;
-  b += "\"%PIP%\" install --find-links \"%WHLDIR%\" faster-whisper --quiet >nul 2>&1" + n;
+  // Tentativo 2: locale + PyPI per dipendenze mancanti
+  b += "echo LOG^|warn^|Tentativo con PyPI per dipendenze mancanti...>> \"%LOG%\"" + n;
+  b += "\"%PIP%\" install --find-links \"%WHLDIR%\" faster-whisper --quiet >> \"%LOG%\" 2>&1" + n;
   b += "if not errorlevel 1 goto :fw_pip_ok" + n;
-  b += "echo ERROR^|0^|Installazione librerie fallita (pip non ha trovato i pacchetti)>> \"%LOG%\"" + n;
+  b += "echo ERROR^|0^|pip install fallito - vedi log sopra per dettagli>> \"%LOG%\"" + n;
   b += "exit /b 1" + n;
   b += ":fw_pip_ok" + n;
   b += "del /f \"%TEMP%\\trascrittore_wheels.zip\" >nul 2>&1" + n;
