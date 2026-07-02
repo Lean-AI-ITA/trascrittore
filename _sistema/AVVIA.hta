@@ -7,16 +7,16 @@
   MAXIMIZEBUTTON="no"
   MINIMIZEBUTTON="yes"
   SYSMENU="yes"
-  SINGLEINSTANCE="yes"
+  SINGLEINSTANCE="no"
   SCROLL="no"
   INNERBORDER="no"
-  ICON="%SystemRoot%\System32\imageres.dll,109"
 />
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=11">
 <title>Trascrittore AI</title>
 <style>
 * { box-sizing:border-box; margin:0; padding:0; }
+html { height:100%; }
 body {
   background:#0D0D1F;
   color:#F8FAFC;
@@ -679,7 +679,7 @@ function pad(n)   { return n < 10 ? "0" + n : "" + n; }
 </script>
 </head>
 
-<body onload="Init()">
+<body onload="Init()" style="background:#0D0D1F;color:#F8FAFC;margin:0;padding:0;overflow:hidden;height:100%;font-family:'Segoe UI',Arial,sans-serif;">
 
 <!-- ERRORE ZONE IDENTIFIER (visibile di default, nascosto da Init() se ok) -->
 <div id="pZone" style="display:table;width:100%;height:100%;text-align:center;">
