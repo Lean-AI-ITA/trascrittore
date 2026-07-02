@@ -308,7 +308,8 @@ function buildHelper() {
   h += n;
   // ── modalita' download con progress ───────────────────────────────────────
   h += "elif mode == 'dl':" + n;
-  h += "    import urllib.request" + n;
+  h += "    import urllib.request, socket" + n;
+  h += "    socket.setdefaulttimeout(60)" + n;
   h += "    url  = sys.argv[3]; dest = sys.argv[4]" + n;
   h += "    s0, s1 = int(sys.argv[5]), int(sys.argv[6])" + n;
   h += "    label  = sys.argv[7] if len(sys.argv) > 7 else 'Download'" + n;
@@ -326,7 +327,7 @@ function buildHelper() {
   h += "            wlog('LOG|info|{}: {} MB / {} MB ({}%)'.format(label, mb, mt, p))" + n;
   h += "    try: urllib.request.urlretrieve(url, dest, rh)" + n;
   h += "    except Exception as e:" + n;
-  h += "        wlog('ERROR|0|Download fallito: ' + str(e)[:200]); sys.exit(1)" + n;
+  h += "        wlog('ERROR|0|Download fallito: ' + str(e)[:300]); sys.exit(1)" + n;
   h += n;
   // ── modalita' modello whisper ──────────────────────────────────────────────
   h += "elif mode == 'model':" + n;
