@@ -480,6 +480,8 @@ function buildBat(root, logF, helperPy, action) {
   b += "set \"WHLDIR2=\"" + n;
   b += "for /f \"delims=\" %%f in ('dir /s /b \"%TEMP%\\trascrittore_wheels\\*.whl\" 2^>nul') do if not defined WHLDIR2 set \"WHLDIR2=%%~dpf\"" + n;
   b += "if defined WHLDIR2 set \"WHLDIR=%WHLDIR2%\"" + n;
+  // Rimuove backslash finale (altrimenti "path\" in CMD causa "escaped quote")
+  b += "if \"%WHLDIR:~-1%\"==\"\\\" set \"WHLDIR=%WHLDIR:~0,-1%\"" + n;
   b += "echo LOG^|info^|Wheels: %WHLDIR%>> \"%LOG%\"" + n;
   // Aggiorna pip per garantire compatibilita'
   b += "echo LOG^|info^|Aggiornamento pip...>> \"%LOG%\"" + n;
