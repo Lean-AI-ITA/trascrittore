@@ -28,10 +28,11 @@ RADIUS    = 8
 
 
 def get_base_dir():
-    """Directory dell'exe (o dello script in sviluppo)."""
+    """Root del pacchetto portable (cartella sopra _sistema/)."""
     if getattr(sys, "frozen", False):
         return Path(sys.executable).parent
-    return Path(__file__).parent
+    # Lo script sta in _sistema/, saliamo di un livello
+    return Path(__file__).parent.parent
 
 
 def get_ffmpeg():
@@ -162,7 +163,8 @@ class TrascrittorePortable:
     def _startup_check(self):
         """Verifica ffmpeg e modello all'avvio."""
         ffmpeg_ok = Path(get_ffmpeg()).exists() or self._cmd_exists("ffmpeg")
-        model_ok  = (get_model_dir() / "base").exists()
+        # Cerca model.bin in qualsiasi sottocartella (supporta vecchio e nuovo formato HF hub)
+        model_ok  = bool(list(get_model_dir().rglob("model.bin"))) if get_model_dir().exists() else False
 
         if ffmpeg_ok:
             self._log("FFmpeg trovato", "ok")
@@ -432,14 +434,15 @@ class TrascrittorePortable:
             self.log("Caricamento modello faster-whisper...")
             from faster_whisper import WhisperModel
 
-            model_path = get_model_dir() / "base"
-            if model_path.exists():
-                self.log(f"Modello locale: {model_path}")
-                model = WhisperModel(str(model_path), device="cpu",
-                                     compute_type="int8")
+            model_dir = get_model_dir()
+            # Usa sempre download_root=models/ così faster-whisper trova il modello
+            # sia in vecchio formato (models/base/) che in nuovo HF hub
+            if list(model_dir.rglob("model.bin")) if model_dir.exists() else False:
+                self.log(f"Modello locale: {model_dir}")
             else:
                 self.log("⚠ Modello non trovato localmente — scarico (~150 MB)...")
-                model = WhisperModel("base", device="cpu", compute_type="int8")
+            model = WhisperModel("base", device="cpu", compute_type="int8",
+                                 download_root=str(model_dir))
 
             self.log("✅ Modello caricato")
 

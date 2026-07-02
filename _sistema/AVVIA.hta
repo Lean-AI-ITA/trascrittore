@@ -541,7 +541,7 @@ function buildBat(root, logF, helperPy, action) {
   b += "tar -xf \"%TEMP%\\ffmpeg_pkg.zip\" -C \"%TEMP%\\ffmpeg_ext\" >nul 2>&1" + n;
   b += "if errorlevel 1 powershell -NoProfile -ExecutionPolicy Bypass -Command \"Expand-Archive '%TEMP%\\ffmpeg_pkg.zip' '%TEMP%\\ffmpeg_ext' -Force\"" + n;
   b += "set \"FFBIN=\"" + n;
-  b += "for /f \"delims=\" %%f in ('dir /s /b \"%TEMP%\\ffmpeg_ext\\bin\\ffmpeg.exe\" 2^>nul') do set \"FFBIN=%%f\"" + n;
+  b += "for /f \"delims=\" %%f in ('dir /s /b \"%TEMP%\\ffmpeg_ext\\ffmpeg.exe\" 2^>nul') do set \"FFBIN=%%f\"" + n;
   b += "if defined FFBIN copy /y \"%FFBIN%\" \"%ROOT%\\ffmpeg.exe\" >nul" + n;
   b += "rmdir /s /q \"%TEMP%\\ffmpeg_ext\" >nul 2>&1" + n;
   b += "del /f \"%TEMP%\\ffmpeg_pkg.zip\" >nul 2>&1" + n;
