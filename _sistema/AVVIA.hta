@@ -454,8 +454,7 @@ function buildBat(root, logF, helperPy, action) {
 
   // STEP 3: scarica wheels da GitHub Release, installa localmente (no PyPI)
   b += "echo STEP^|42^|Passo 3/5 - Controllo faster-whisper...>> \"%LOG%\"" + n;
-  b += "\"%PIP%\" show faster-whisper >nul 2>&1" + n;
-  b += "if errorlevel 1 (" + n;
+  b += "if not exist \"%VENV%\\Lib\\site-packages\\faster_whisper\" (" + n;
   b += "  echo LOG^|info^|Download librerie da GitHub (~81 MB)...>> \"%LOG%\"" + n;
   b += "  \"%PY%\" \"%HLP%\" dl \"%LOG%\" \"https://github.com/Lean-AI-ITA/trascrittore/releases/download/2.0/wheels.zip\" \"%TEMP%\\trascrittore_wheels.zip\" 42 58 \"Passo 3/5 - Librerie\"" + n;
   b += "  if errorlevel 1 (" + n;
