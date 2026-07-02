@@ -451,14 +451,34 @@ function buildBat(root, logF, helperPy, action) {
   b += ")" + n;
   b += n;
 
-  // STEP 3: faster-whisper via Python helper (progress animato ogni 4s)
-  b += "echo STEP^|42^|Passo 3/5 - Installo faster-whisper...>> \"%LOG%\"" + n;
+  // STEP 3: scarica wheels da GitHub Release, installa localmente (no PyPI)
+  b += "echo STEP^|42^|Passo 3/5 - Controllo faster-whisper...>> \"%LOG%\"" + n;
   b += "\"%PIP%\" show faster-whisper >nul 2>&1" + n;
   b += "if errorlevel 1 (" + n;
-  b += "  echo LOG^|info^|Avvio download pacchetti pip (~200 MB, 2-5 min)...>> \"%LOG%\"" + n;
-  b += "  \"%PY%\" \"%HLP%\" pip \"%LOG%\" \"%PIP%\" 42 62" + n;
-  b += "  if errorlevel 1 exit /b 1" + n;
+  b += "  echo LOG^|info^|Download librerie da GitHub (~81 MB)...>> \"%LOG%\"" + n;
+  b += "  \"%PY%\" \"%HLP%\" dl \"%LOG%\" \"https://github.com/Lean-AI-ITA/trascrittore/releases/download/2.0/wheels.zip\" \"%TEMP%\\trascrittore_wheels.zip\" 42 58 \"Passo 3/5 - Librerie\"" + n;
+  b += "  if errorlevel 1 (" + n;
+  b += "    echo ERROR^|0^|Download librerie fallito. Verifica connessione internet.>> \"%LOG%\"" + n;
+  b += "    exit /b 1" + n;
+  b += "  )" + n;
+  b += "  echo LOG^|info^|Estrazione librerie...>> \"%LOG%\"" + n;
+  b += "  if exist \"%TEMP%\\trascrittore_wheels\" rmdir /s /q \"%TEMP%\\trascrittore_wheels\"" + n;
+  b += "  mkdir \"%TEMP%\\trascrittore_wheels\" >nul 2>&1" + n;
+  b += "  tar -xf \"%TEMP%\\trascrittore_wheels.zip\" -C \"%TEMP%\\trascrittore_wheels\" >nul 2>&1" + n;
+  b += "  if errorlevel 1 powershell -NoProfile -ExecutionPolicy Bypass -Command \"Expand-Archive '%TEMP%\\trascrittore_wheels.zip' '%TEMP%\\trascrittore_wheels' -Force\"" + n;
+  b += "  echo STEP^|59^|Passo 3/5 - Installazione librerie...>> \"%LOG%\"" + n;
+  b += "  echo LOG^|info^|Installo pacchetti locali...>> \"%LOG%\"" + n;
+  // pip cerca i .whl nella root e nella sottocartella wheels/ (dipende da come e' stato zippato)
+  b += "  \"%PIP%\" install --no-index --find-links \"%TEMP%\\trascrittore_wheels\" faster-whisper --quiet >nul 2>&1" + n;
+  b += "  if errorlevel 1 \"%PIP%\" install --no-index --find-links \"%TEMP%\\trascrittore_wheels\\wheels\" faster-whisper --quiet" + n;
+  b += "  if errorlevel 1 (" + n;
+  b += "    echo ERROR^|0^|Installazione librerie fallita>> \"%LOG%\"" + n;
+  b += "    exit /b 1" + n;
+  b += "  )" + n;
+  b += "  del /f \"%TEMP%\\trascrittore_wheels.zip\" >nul 2>&1" + n;
+  b += "  rmdir /s /q \"%TEMP%\\trascrittore_wheels\" >nul 2>&1" + n;
   b += "  echo LOG^|ok^|faster-whisper installato>> \"%LOG%\"" + n;
+  b += "  echo STEP^|62^|Passo 3/5 - faster-whisper OK>> \"%LOG%\"" + n;
   b += ") else (" + n;
   b += "  echo LOG^|ok^|faster-whisper gia presente>> \"%LOG%\"" + n;
   b += "  echo STEP^|62^|Passo 3/5 - faster-whisper OK>> \"%LOG%\"" + n;
