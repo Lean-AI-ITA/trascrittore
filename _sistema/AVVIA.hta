@@ -314,7 +314,7 @@ function buildHelper() {
   h += n;
   // ── modalita' download con progress ───────────────────────────────────────
   h += "elif mode == 'dl':" + n;
-  h += "    import urllib.request, socket" + n;
+  h += "    import urllib.request, socket, ssl" + n;
   h += "    socket.setdefaulttimeout(60)" + n;
   h += "    url  = sys.argv[3]; dest = sys.argv[4]" + n;
   h += "    s0, s1 = int(sys.argv[5]), int(sys.argv[6])" + n;
@@ -331,9 +331,31 @@ function buildHelper() {
   h += "            last[0] = p" + n;
   h += "            wlog('STEP|{}|{}: {} MB / {} MB ({}%)'.format(sp, label, mb, mt, p))" + n;
   h += "            wlog('LOG|info|{}: {} MB / {} MB ({}%)'.format(label, mb, mt, p))" + n;
-  h += "    try: urllib.request.urlretrieve(url, dest, rh)" + n;
+  h += "    def dl_url(target_url, target_dest, ctx=None):" + n;
+  h += "        req = urllib.request.Request(target_url, headers={'User-Agent':'Mozilla/5.0'})" + n;
+  h += "        kw  = {'context': ctx} if ctx else {}" + n;
+  h += "        with urllib.request.urlopen(req, **kw) as r:" + n;
+  h += "            total = int(r.headers.get('Content-Length', 0))" + n;
+  h += "            done2 = 0; chunk = 65536" + n;
+  h += "            with open(target_dest, 'wb') as fh:" + n;
+  h += "                while True:" + n;
+  h += "                    buf = r.read(chunk)" + n;
+  h += "                    if not buf: break" + n;
+  h += "                    fh.write(buf); done2 += len(buf)" + n;
+  h += "                    rh(done2 // chunk, chunk, total)" + n;
+  h += "    try:" + n;
+  h += "        dl_url(url, dest)" + n;
   h += "    except Exception as e:" + n;
-  h += "        wlog('ERROR|0|Download fallito: ' + str(e)[:300]); sys.exit(1)" + n;
+  h += "        if 'SSL' in str(e) or 'certificate' in str(e).lower():" + n;
+  h += "            wlog('LOG|warn|SSL scaduto - riprovo senza verifica...')" + n;
+  h += "            try:" + n;
+  h += "                ctx = ssl.create_default_context()" + n;
+  h += "                ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE" + n;
+  h += "                dl_url(url, dest, ctx)" + n;
+  h += "            except Exception as e2:" + n;
+  h += "                wlog('LOG|warn|Download fallito: ' + str(e2)[:200]); sys.exit(1)" + n;
+  h += "        else:" + n;
+  h += "            wlog('LOG|warn|Download fallito: ' + str(e)[:200]); sys.exit(1)" + n;
   h += n;
   // ── modalita' modello whisper ──────────────────────────────────────────────
   h += "elif mode == 'model':" + n;
